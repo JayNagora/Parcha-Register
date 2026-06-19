@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Parcha Distribution Register Tool - Jay</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eef4ff;color:#172033}
+.header{padding:18px 24px;background:#fff7ef;border-bottom:2px solid #d8c1aa}
+.header h1{margin:0;font-size:28px;color:#4b210f}
+.header p{margin:6px 0 0;color:#53627a;font-weight:700}
+.container{padding:18px}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid #d8c1aa;border-radius:12px;padding:14px;margin-bottom:14px}
+button,label{border:1px solid #d8c1aa;background:#f4eadf;color:#4b210f;font-weight:900;font-size:15px;padding:13px 18px;border-radius:999px;min-height:52px;cursor:pointer}
+button:hover,label:hover{background:#ead9ca}
+input[type=file]{display:none}
+.main-btn{background:#0f766e;color:#fff;border-color:#0f766e}
+.clear-btn{background:#fff0f0;color:#b91c1c;border-color:#ffadad}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid #d8c1aa;border-radius:12px;padding:14px;text-align:center}
+.kpi b{display:block;color:#53627a;font-size:13px;margin-bottom:5px}
+.kpi span{font-size:26px;font-weight:900;color:#0f172a}
+.table-wrap{background:#fff;border:1px solid #d8c1aa;border-radius:12px;overflow:auto;max-height:60vh}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{border-bottom:1px solid #e5e7eb;padding:9px 10px;text-align:left;font-size:13px;vertical-align:top}
+th{position:sticky;top:0;background:#4b210f;color:#fff;z-index:1}
+tr:nth-child(even){background:#fafafa}
+#status{font-weight:900;color:#0f172a;margin-left:auto}
+.note{font-size:13px;color:#53627a;font-weight:700;margin-top:8px}
+
+#printArea{position:absolute;left:0;top:0;width:210mm;background:#fff;z-index:-1;opacity:1}
+.pdf-page{
+  display:block;
+  width:210mm;
+  min-height:auto;
+  padding:10mm;
+  background:#fff;
+  color:#000;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif;
+  page-break-after:auto;
+}
+.pdf-title{text-align:center;font-size:20px;font-weight:900;margin-bottom:8px}
+.pdf-subtitle{text-align:center;font-size:15px;font-weight:800;margin-bottom:8px}
+.pdf-info{font-size:11px;font-weight:700;margin-bottom:8px}
+.pdf-table{width:100%;border-collapse:collapse;font-size:10px}
+.pdf-table th,.pdf-table td{border:1px solid #000;padding:4px;vertical-align:top}
+.pdf-table th{background:#d9eaf7;text-align:center;font-weight:900}
+.pdf-table td:nth-child(1),.pdf-table td:nth-child(2){text-align:center}
+
+/* Landscape PDF optimized: low MB and name not cut */
+#printArea{position:absolute;left:-99999px;top:0;width:297mm;background:#fff;z-index:-1;opacity:1}
+.pdf-page{
+  display:block;
+  width:297mm;
+  padding:7mm;
+  background:#fff;
+  color:#000;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif;
+  page-break-after:auto;
+}
+.pdf-title{text-align:center;font-size:16px;font-weight:900;margin-bottom:5px}
+.pdf-subtitle{text-align:center;font-size:12px;font-weight:800;margin-bottom:5px}
+.pdf-info{font-size:9px;font-weight:700;margin-bottom:5px}
+.pdf-table{width:100%;border-collapse:collapse;font-size:8px;table-layout:fixed}
+.pdf-table th,.pdf-table td{
+  border:1px solid #000;
+  padding:2px 3px;
+  vertical-align:top;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+}
+.pdf-table th{background:#d9eaf7;text-align:center;font-weight:900}
+.pdf-table td:nth-child(1),.pdf-table td:nth-child(2){text-align:center}
+
+
+/* Sample-like portrait PDF format */
+#printArea{position:absolute;left:-99999px;top:0;width:210mm;background:#fff;z-index:-1;opacity:1}
+.pdf-page{
+  display:block;
+  width:210mm;
+  height:297mm;
+  padding:7mm 6mm 8mm 6mm;
+  background:#fff;
+  color:#000;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif;
+  page-break-after:auto;
+  position:relative;
+  overflow:hidden;
+}
+.cover-page{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1.2px solid #000;
+  margin:0;
+  padding:0;
+}
+.cover-inner{
+  transform:translateY(-10mm);
+}
+.cover-title{
+  display:inline-block;
+  font-size:22px;
+  font-weight:900;
+  border-bottom:2px solid #000;
+  padding-bottom:2px;
+  margin-bottom:28px;
+}
+.cover-village{
+  font-size:20px;
+  font-weight:900;
+}
+.pdf-title{display:none}
+.pdf-subtitle{display:none}
+.pdf-info{
+  font-size:8.5px;
+  font-weight:800;
+  margin:0 0 3px 0;
+  line-height:1.25;
+}
+.pdf-year{
+  text-align:center;
+  font-size:8.5px;
+  font-weight:800;
+  margin:0 0 3px 0;
+}
+.pdf-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:7.4px;
+  table-layout:fixed;
+}
+.pdf-table th,.pdf-table td{
+  border:0.8px solid #000;
+  padding:1.4px 2px;
+  vertical-align:middle;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+  line-height:1.18;
+}
+.pdf-table th{
+  background:#d9eaf7;
+  text-align:center;
+  font-weight:900;
+}
+.pdf-table td:nth-child(1),.pdf-table td:nth-child(2){text-align:center}
+.pdf-footer{
+  position:absolute;
+  bottom:4mm;
+  left:7mm;
+  right:7mm;
+  font-size:5.7px;
+  color:#111;
+}
+.pdf-footer .center{text-align:center}
+.pdf-footer .right{position:absolute;right:0;bottom:0}
+
+
+/* TRUE LANDSCAPE PDF FORMAT - matched with supplied register style */
+#printArea{
+  position:absolute;
+  left:-99999px;
+  top:0;
+  width:297mm;
+  background:#fff;
+  z-index:-1;
+  opacity:1;
+}
+.pdf-page{
+  display:block;
+  width:297mm;
+  height:210mm;
+  padding:6mm 5mm 8mm 5mm;
+  background:#fff;
+  color:#000;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif;
+  position:relative;
+  overflow:hidden;
+  page-break-after:auto;
+}
+.cover-page{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1.2px solid #000;
+  padding:0;
+}
+.cover-inner{
+  transform:translateY(-4mm);
+}
+.cover-title{
+  display:inline-block;
+  font-size:22px;
+  font-weight:900;
+  border-bottom:2px solid #000;
+  padding-bottom:2px;
+  margin-bottom:22px;
+}
+.cover-village{
+  font-size:18px;
+  font-weight:900;
+}
+.pdf-info{
+  font-size:8.1px;
+  font-weight:900;
+  margin:0 0 2px 0;
+  line-height:1.1;
+  white-space:nowrap;
+}
+.pdf-year{
+  text-align:center;
+  font-size:8.2px;
+  font-weight:900;
+  margin:0 0 2px 0;
+}
+.pdf-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:7.2px;
+  table-layout:fixed;
+}
+.pdf-table th,.pdf-table td{
+  border:0.8px solid #000;
+  padding:1.25px 2px;
+  vertical-align:middle;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+  line-height:1.14;
+}
+.pdf-table th{
+  background:#d9eaf7;
+  text-align:center;
+  font-weight:900;
+}
+.pdf-table td:nth-child(1),.pdf-table td:nth-child(2){
+  text-align:center;
+}
+.pdf-footer{
+  position:absolute;
+  bottom:3.5mm;
+  left:5mm;
+  right:5mm;
+  font-size:5.6px;
+  color:#111;
+}
+.pdf-footer .center{text-align:center}
+.pdf-footer .right{position:absolute;right:0;bottom:0}
+
+
+/* FINAL MATCHED LANDSCAPE FORMAT - full width, bigger table, names not cut */
+#printArea.final-landscape-render{
+  position:absolute !important;
+  left:-99999px !important;
+  top:0 !important;
+  width:297mm !important;
+  background:#fff !important;
+  z-index:-1 !important;
+  opacity:1 !important;
+}
+.pdf-page.final-landscape-page{
+  display:block !important;
+  width:297mm !important;
+  height:210mm !important;
+  padding:7mm 6mm 8mm 6mm !important;
+  margin:0 !important;
+  background:#fff !important;
+  color:#000 !important;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif !important;
+  position:relative !important;
+  overflow:hidden !important;
+  page-break-after:auto !important;
+}
+.pdf-page.final-landscape-page.cover-page{
+  border:1.2px solid #000 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+}
+.final-cover-inner{transform:translateY(-5mm)}
+.final-cover-title{
+  display:inline-block;
+  font-size:24px !important;
+  font-weight:900 !important;
+  border-bottom:2px solid #000 !important;
+  padding-bottom:2px !important;
+  margin-bottom:22px !important;
+}
+.final-cover-village{font-size:20px !important;font-weight:900 !important}
+.final-info{
+  font-size:9.5px !important;
+  font-weight:900 !important;
+  margin:0 0 2px 0 !important;
+  line-height:1.15 !important;
+  white-space:nowrap !important;
+}
+.final-year{
+  font-size:9.5px !important;
+  text-align:center !important;
+  font-weight:900 !important;
+  margin:0 0 2px 0 !important;
+}
+.final-table{
+  width:100% !important;
+  border-collapse:collapse !important;
+  table-layout:fixed !important;
+  font-size:9.2px !important;
+  margin:0 !important;
+}
+.final-table th,.final-table td{
+  border:0.9px solid #000 !important;
+  padding:2.4px 3px !important;
+  vertical-align:middle !important;
+  overflow-wrap:anywhere !important;
+  word-break:break-word !important;
+  white-space:normal !important;
+  line-height:1.18 !important;
+  color:#000 !important;
+}
+.final-table th{
+  background:#fff !important;
+  text-align:center !important;
+  font-weight:900 !important;
+  font-size:9.3px !important;
+}
+.final-table td:nth-child(1),
+.final-table td:nth-child(2){
+  text-align:center !important;
+  font-weight:700 !important;
+}
+.final-table .name-cell{
+  text-align:left !important;
+  font-weight:700 !important;
+}
+.final-table tr{
+  min-height:12mm !important;
+}
+.final-table tbody tr td{
+  height:11.5mm !important;
+}
+.final-footer{
+  position:absolute !important;
+  bottom:3.5mm !important;
+  left:6mm !important;
+  right:6mm !important;
+  font-size:6px !important;
+  color:#111 !important;
+}
+.final-footer .center{text-align:center !important}
+.final-footer .right{position:absolute !important;right:0 !important;bottom:0 !important}
+
+
+/* FINAL QUALITY + LESS GAP UPDATE */
+.final-table{
+  font-size:9.8px !important;
+}
+.final-table th,.final-table td{
+  padding:2.2px 3px !important;
+  line-height:1.16 !important;
+}
+.final-table td:nth-child(1),
+.final-table td:nth-child(2){
+  font-weight:900 !important;
+  color:#000 !important;
+}
+.final-table tbody tr td{
+  height:8.8mm !important;
+}
+.pdf-page.final-landscape-page{
+  padding:6mm 6mm 4mm 6mm !important;
+}
+.final-footer{
+  display:none !important;
+}
+.final-info{
+  font-size:9.6px !important;
+  margin-bottom:1px !important;
+}
+.final-year{
+  font-size:9.6px !important;
+  margin-bottom:1px !important;
+}
+
+
+/* FINAL HEADER + GAP FIX */
+.final-info{
+  font-size:10.5px !important;
+  font-weight:900 !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1.05 !important;
+  white-space:nowrap !important;
+}
+.final-year{
+  font-size:10.5px !important;
+  font-weight:900 !important;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1.05 !important;
+  text-align:center !important;
+}
+.final-table{
+  margin-top:0 !important;
+  font-size:9.8px !important;
+  width:100% !important;
+}
+.final-table th,.final-table td{
+  padding:1.8px 3px !important;
+  line-height:1.12 !important;
+}
+.final-table tbody tr td{
+  height:7.6mm !important;
+}
+.pdf-page.final-landscape-page{
+  padding:5mm 6mm 2mm 6mm !important;
+}
+.final-footer{
+  display:none !important;
+}
+
+
+/* SELF EVALUATION FIX: content-height PDF, no bottom blank */
+#evalPrintArea{
+  position:absolute;
+  left:-99999px;
+  top:0;
+  width:297mm;
+  background:#fff;
+  z-index:-1;
+  opacity:1;
+}
+.eval-page{
+  display:block;
+  width:297mm;
+  height:auto;
+  padding:5mm 6mm 3mm 6mm;
+  margin:0;
+  background:#fff;
+  color:#000;
+  font-family:"Noto Sans Devanagari","Mangal","Arial Unicode MS",Arial,sans-serif;
+  box-sizing:border-box;
+  overflow:visible;
+}
+.eval-cover{
+  height:210mm;
+  border:1.2px solid #000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.eval-cover-title{
+  display:inline-block;
+  font-size:24px;
+  font-weight:900;
+  border-bottom:2px solid #000;
+  padding-bottom:2px;
+  margin-bottom:22px;
+}
+.eval-cover-village{
+  font-size:20px;
+  font-weight:900;
+}
+.eval-info{
+  font-size:10px;
+  font-weight:900;
+  line-height:1.05;
+  margin:0;
+  padding:0;
+  white-space:nowrap;
+}
+.eval-year{
+  font-size:10px;
+  font-weight:900;
+  line-height:1.05;
+  margin:0 0 1px 0;
+  padding:0;
+  text-align:center;
+}
+.eval-table{
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:9.8px;
+  margin:0;
+}
+.eval-table th,.eval-table td{
+  border:0.9px solid #000;
+  padding:2px 3px;
+  line-height:1.12;
+  color:#000;
+  vertical-align:middle;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:normal;
+}
+.eval-table th{
+  background:#fff;
+  font-weight:900;
+  text-align:center;
+}
+.eval-table td:nth-child(1),.eval-table td:nth-child(2){
+  text-align:center;
+  font-weight:900;
+}
+.eval-name{
+  text-align:left !important;
+  font-weight:700;
+}
+.eval-table tbody td{
+  min-height:7.2mm;
+}
+
+
+/* FINAL USER FIX: no header extra line, bottom space 0.25 inch */
+.eval-page{
+  padding:5mm 6mm 6mm 6mm !important;
+}
+.eval-table{
+  border-top:none !important;
+}
+.eval-table thead,
+.eval-table thead tr,
+.eval-table thead th{
+  border-top:none !important;
+}
+.eval-table tbody td{
+  min-height:6mm !important;
+  height:6mm !important;
+}
+.eval-table th,.eval-table td{
+  line-height:1.08 !important;
+  padding:1.5px 3px !important;
+}
+.eval-info{
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1 !important;
+}
+.eval-year{
+  margin:0 0 0.5mm 0 !important;
+  padding:0 !important;
+  line-height:1 !important;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="loginScreen" style="position:fixed;inset:0;background:#eef4ff;display:flex;align-items:center;justify-content:center;z-index:99999;">
+<div style="background:white;padding:30px;border-radius:12px;box-shadow:0 0 10px rgba(0,0,0,.2);width:320px">
+<h2 style="text-align:center">Parcha Register</h2>
+<input id="userName" placeholder="Username" style="width:100%;padding:10px;margin:8px 0">
+<input id="password" type="password" placeholder="Password" style="width:100%;padding:10px;margin:8px 0">
+<button onclick="doLogin()" style="width:100%;padding:10px">Login</button>
+<p id="loginMsg" style="color:red"></p>
+</div></div>
+
+<div class="header">
+  <h1>Parcha Distribution Register Tool - Developed by Jay</h1>
+  <p>Upload Village Khasra Index / ROR Excel and download Parcha Distribution Register format automatically.</p>
+</div>
+
+<div class="container">
+  <div class="toolbar">
+    <label for="excelInput">Upload ROR Excel</label>
+    <input id="excelInput" type="file" accept=".xlsx,.xls" />
+    <button id="downloadBtn" class="main-btn">Download Excel</button>
+    <button id="mainPdfBtn" class="main-btn">PDF पर्चा Register</button>
+    <button id="azPdfBtn" class="main-btn">PDF खातेदार A-Z</button>
+    <button id="pdfBtn" class="main-btn">Download Both PDF</button>
+    <button id="bothBtn" class="main-btn">Download Excel + PDF</button>
+    <button id="clearBtn" class="clear-btn">Clear</button><button id="logoutBtn" class="clear-btn">Logout</button>
+    <div id="status">Waiting for Excel upload...</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b>Village</b><span id="kpiVillage">-</span></div>
+    <div class="kpi"><b>Total Khata</b><span id="kpiKhata">0</span></div>
+    <div class="kpi"><b>Total Parcha Rows</b><span id="kpiRows">0</span></div>
+    <div class="kpi"><b>A-Z Rows</b><span id="kpiAZ">0</span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="previewTable">
+      <thead>
+        <tr>
+          <th>क्रमांक संख्या</th>
+          <th>खाता संख्या</th>
+          <th>काश्तकार का नाम</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="note" style="display:none;">
+    Rule: ROR Excel की row 2 से headers read होंगे. “खाता” और “काश्तकार” field से data लिया जाएगा. Same खाता में duplicate खातेदार name repeat हो तो एक बार ही आएगा. Output में 2 sheets बनेंगी: पर्चा संख्या_A to Z and खातेदार का नाम_A to Z.
+  </div>
+</div>
+
+<script>
+'use strict';
+
+var workbookData = null;
+var generatedRows = [];
+var generatedRowsAZ = [];
+var metadata = {};
+var inputBaseName = 'Parcha_Distribution_Register';
+
+document.getElementById('excelInput').addEventListener('change', readInputExcel);
+document.getElementById('downloadBtn').addEventListener('click', downloadRegister);
+document.getElementById('mainPdfBtn').addEventListener('click', function(){ downloadSinglePDF('main'); });
+document.getElementById('azPdfBtn').addEventListener('click', function(){ downloadSinglePDF('az'); });
+document.getElementById('pdfBtn').addEventListener('click', downloadPDF);
+document.getElementById('bothBtn').addEventListener('click', function(){ downloadRegister(); setTimeout(downloadPDF, 500); });
+document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+
+document.getElementById('logoutBtn').addEventListener('click', function(){
+ localStorage.removeItem('jay_login');
+ location.reload();
+});
+
+function doLogin(){
+ const exp = new Date('2026-12-31');
+ if(new Date()>exp){document.getElementById('loginMsg').innerText='Login expired';return;}
+ if(document.getElementById('userName').value==='Jay' && document.getElementById('password').value==='Jay123'){
+   localStorage.setItem('jay_login','1');
+   document.getElementById('loginScreen').style.display='none';
+ }else{
+   document.getElementById('loginMsg').innerText='Invalid username or password';
+ }
+}
+
+window.addEventListener('load',function(){
+ const exp = new Date('2026-12-31');
+ if(localStorage.getItem('jay_login')==='1' && new Date()<=exp){
+   document.getElementById('loginScreen').style.display='none';
+ }
+});
+
+function setStatus(text){ document.getElementById('status').innerText = text; }
+function setText(id,text){ document.getElementById(id).innerText = text; }
+
+function safeName(name){
+  return String(name || 'Parcha_Distribution_Register')
+    .replace(/\.[^.]+$/,'')
+    .replace(/[\\/:*?"<>|]/g,'_')
+    .replace(/\s+/g,'_')
+    .replace(/_+/g,'_');
+}
+
+function cleanText(v){
+  return String(v == null ? '' : v).trim();
+}
+
+function normalizeKey(v){
+  return cleanText(v).replace(/\s+/g,'').toLowerCase();
+}
+
+function getCell(matrix, r, c){
+  return (matrix[r] && matrix[r][c] != null) ? matrix[r][c] : '';
+}
+
+function parseAfterColon(text){
+  text = cleanText(text);
+  var parts = text.split(/[:：]/);
+  return parts.length > 1 ? cleanText(parts.slice(1).join(':')) : text;
+}
+
+function parseMetadata(matrix){
+  var row = matrix[0] || [];
+
+  function findByWord(word){
+    for(var i=0;i<row.length;i++){
+      var v = cleanText(row[i]);
+      if(v.indexOf(word) >= 0) return parseAfterColon(v);
+    }
+    return '';
+  }
+
+  return {
+    village: findByWord('गांव') || 'Village',
+    ilr: findByWord('भू.अभी.नि') || findByWord('आई') || '',
+    patwar: findByWord('पटवार') || '',
+    samvat: findByWord('सम्वत') || '',
+    district: findByWord('जिला') || '',
+    tehsil: findByWord('तहसील') || '',
+    year: '2026'
+  };
+}
+
+function findHeaderIndex(headers, possibleWords, fallbackIndex){
+  for(var i=0;i<headers.length;i++){
+    var h = normalizeKey(headers[i]);
+    for(var j=0;j<possibleWords.length;j++){
+      if(h.indexOf(normalizeKey(possibleWords[j])) >= 0) return i;
+    }
+  }
+  return fallbackIndex;
+}
+
+function splitTenants(text){
+  text = cleanText(text);
+  if(!text) return [];
+
+  var matches = [];
+  var re = /\d+\s*\.\s*\)\s*/g;
+  var m;
+
+  while((m = re.exec(text)) !== null){
+    matches.push({start:m.index, end:re.lastIndex});
+  }
+
+  if(matches.length){
+    var out = [];
+    for(var i=0;i<matches.length;i++){
+      var start = matches[i].end;
+      var end = (i + 1 < matches.length) ? matches[i+1].start : text.length;
+      var seg = text.substring(start,end);
+      seg = cleanTenant(seg);
+      if(seg) out.push(seg);
+    }
+    return out;
+  }
+
+  return [cleanTenant(text)].filter(Boolean);
+}
+
+function cleanTenant(text){
+  var t = cleanText(text)
+    .replace(/^[,;\s]+|[,;\s]+$/g,'')
+    .replace(/\s+/g,' ');
+
+  // Sample output rule: bank text after "( पूर्ण खाता )" is removed.
+  // It keeps tenant line up to "( पूर्ण खाता".
+  t = t.replace(/\(\s*पूर्ण\s+खाता\s*\).*$/,'( पूर्ण खाता');
+
+  return t;
+}
+
+function khataSort(a,b){
+  var an = Number(String(a.khata).replace(/[^\d.]/g,''));
+  var bn = Number(String(b.khata).replace(/[^\d.]/g,''));
+
+  if(Number.isFinite(an) && Number.isFinite(bn) && an !== bn) return an - bn;
+  return String(a.khata).localeCompare(String(b.khata), 'hi');
+}
+
+function tenantSort(a,b){
+  var ta = String(a.tenant || '').trim();
+  var tb = String(b.tenant || '').trim();
+  var cmp = ta.localeCompare(tb, 'hi');
+  if(cmp !== 0) return cmp;
+  return khataSort(a,b);
+}
+
+function processSheet(matrix){
+  metadata = parseMetadata(matrix);
+
+  var headers = matrix[1] || [];
+  var khataCol = findHeaderIndex(headers, ['खाता', 'khata'], 0);
+  var tenantCol = findHeaderIndex(headers, ['काश्तकार', 'tenant', 'owner', 'name'], 7);
+
+  var khataMap = {};
+  var khataOrder = [];
+
+  for(var r=2;r<matrix.length;r++){
+    var khata = cleanText(getCell(matrix,r,khataCol));
+    var tenantText = cleanText(getCell(matrix,r,tenantCol));
+
+    if(!khata || !tenantText) continue;
+
+    if(!khataMap[khata]){
+      khataMap[khata] = {khata: khata, tenants: [], seen: {}};
+      khataOrder.push(khata);
+    }
+
+    var tenants = splitTenants(tenantText);
+
+    tenants.forEach(function(t){
+      var key = normalizeKey(t);
+      if(key && !khataMap[khata].seen[key]){
+        khataMap[khata].seen[key] = true;
+        khataMap[khata].tenants.push(t);
+      }
+    });
+  }
+
+  var blocks = khataOrder.map(function(k){ return khataMap[k]; }).sort(khataSort);
+
+  generatedRows = [];
+  blocks.forEach(function(block){
+    block.tenants.forEach(function(t){
+      generatedRows.push({khata: block.khata, tenant: t});
+    });
+  });
+
+  generatedRowsAZ = generatedRows.slice().sort(tenantSort);
+
+  renderPreview();
+  setText('kpiVillage', metadata.village);
+  setText('kpiKhata', blocks.length);
+  setText('kpiRows', generatedRows.length);
+  setText('kpiAZ', generatedRowsAZ.length);
+  setStatus('Excel processed successfully. Rows: ' + generatedRows.length);
+}
+
+async function readInputExcel(event){
+  var file = event.target.files[0];
+  if(!file) return;
+
+  inputBaseName = safeName(file.name);
+  setStatus('Reading Excel...');
+
+  try{
+    var arrayBuffer = await file.arrayBuffer();
+    var wb = XLSX.read(arrayBuffer, {type:'array'});
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    var matrix = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    processSheet(matrix);
+  }catch(e){
+    console.error(e);
+    alert('Excel read failed: ' + e.message);
+    setStatus('Excel upload failed.');
+  }
+}
+
+function renderPreview(){
+  var tbody = document.querySelector('#previewTable tbody');
+  tbody.innerHTML = '';
+
+  generatedRows.slice(0,50).forEach(function(row, idx){
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (idx+1) + '</td>' +
+      '<td>' + escapeHtml(row.khata) + '</td>' +
+      '<td>' + escapeHtml(row.tenant) + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function escapeHtml(v){
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+
+function makeCell(v, style){
+  return {v:v, s:style || {}};
+}
+
+function titleStyle(){
+  return {
+    font:{bold:true, sz:16},
+    alignment:{horizontal:'center', vertical:'center', wrapText:true},
+    border: borderAll()
+  };
+}
+
+function headerStyle(){
+  return {
+    font:{bold:true},
+    alignment:{horizontal:'center', vertical:'center', wrapText:true},
+    border: borderAll(),
+    fill:{fgColor:{rgb:'D9EAF7'}}
+  };
+}
+
+function normalStyle(){
+  return {
+    alignment:{horizontal:'center', vertical:'center', wrapText:true},
+    border: borderAll()
+  };
+}
+
+function nameStyle(){
+  return {
+    alignment:{horizontal:'left', vertical:'center', wrapText:true},
+    border: borderAll()
+  };
+}
+
+function borderAll(){
+  return {
+    top:{style:'thin', color:{rgb:'000000'}},
+    bottom:{style:'thin', color:{rgb:'000000'}},
+    left:{style:'thin', color:{rgb:'000000'}},
+    right:{style:'thin', color:{rgb:'000000'}}
+  };
+}
+
+function buildSheet1(){
+  var aoa = [];
+
+  aoa.push([makeCell('PARCHA DISTRIBUTION REGISTER\n\nग्राम :-       ' + metadata.village, titleStyle()), {}, {}, {}, {}, {}, {}, {}]);
+  aoa.push([{}, {}, {}, {}, {}, {}, {}, {}]);
+  aoa.push([{}, {}, {}, {}, {}, {}, {}, {}]);
+
+  var info = 'ग्राम:-      ' + metadata.village +
+    '               पटवार सर्कल:-  ' + metadata.patwar +
+    '         आई.एल.आर. वृत्त. :- ' + metadata.ilr +
+    '            तहसील :- ' + metadata.tehsil +
+    '                                             जिला :- ' + metadata.district +
+    '                                                              वर्ष:-  ' + metadata.year;
+
+  aoa.push([makeCell(info, {font:{bold:true}, alignment:{horizontal:'left', vertical:'center', wrapText:true}, border:borderAll()}), {}, {}, {}, {}, {}, {}, {}]);
+
+  aoa.push([
+    makeCell('क्रमांक संख्या', headerStyle()),
+    makeCell('खाता संख्या', headerStyle()),
+    makeCell('काश्तकार का नाम', headerStyle()),
+    makeCell('मोबाइल नंबर', headerStyle()),
+    makeCell('आधार नंबर', headerStyle()),
+    makeCell('दिनांक', headerStyle()),
+    makeCell('प्राप्ति हस्तक्षार', headerStyle()),
+    makeCell('विशेष विवरण', headerStyle())
+  ]);
+
+  generatedRows.forEach(function(row, i){
+    aoa.push([
+      makeCell(i+1, normalStyle()),
+      makeCell(row.khata, normalStyle()),
+      makeCell(' ' + row.tenant, nameStyle()),
+      makeCell('', normalStyle()),
+      makeCell('', normalStyle()),
+      makeCell('', normalStyle()),
+      makeCell('', normalStyle()),
+      makeCell('', normalStyle())
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [
+    {s:{r:0,c:0}, e:{r:2,c:7}},
+    {s:{r:3,c:0}, e:{r:3,c:7}}
+  ];
+  ws['!cols'] = [
+    {wch:12}, {wch:12}, {wch:70}, {wch:18}, {wch:18}, {wch:14}, {wch:18}, {wch:22}
+  ];
+
+  ws['!rows'] = [];
+  ws['!rows'][0] = {hpt:42};
+  ws['!rows'][3] = {hpt:32};
+  ws['!rows'][4] = {hpt:28};
+
+  for(var r=5;r<aoa.length;r++){
+    ws['!rows'][r] = {hpt:36};
+  }
+
+  return ws;
+}
+
+function buildSheet2(){
+  var aoa = [];
+
+  aoa.push([{}, makeCell('ग्राम :-       ' + metadata.village, titleStyle()), {}]);
+  aoa.push([
+    makeCell('क्रमांक संख्या', headerStyle()),
+    makeCell('काश्तकार का नाम', headerStyle()),
+    makeCell('खाता संख्या', headerStyle())
+  ]);
+
+  generatedRowsAZ.forEach(function(row, i){
+    aoa.push([
+      makeCell(i+1, normalStyle()),
+      makeCell(' ' + row.tenant, nameStyle()),
+      makeCell(row.khata, normalStyle())
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [{s:{r:0,c:1}, e:{r:0,c:2}}];
+  ws['!cols'] = [{wch:12}, {wch:80}, {wch:12}];
+  ws['!rows'] = [];
+  ws['!rows'][0] = {hpt:32};
+  ws['!rows'][1] = {hpt:28};
+
+  for(var r=2;r<aoa.length;r++){
+    ws['!rows'][r] = {hpt:34};
+  }
+
+  return ws;
+}
+
+function downloadRegister(){
+  if(!generatedRows.length){
+    alert('Pehle ROR Excel upload karein.');
+    return;
+  }
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, buildSheet1(), 'पर्चा संख्या_A to Z');
+  XLSX.utils.book_append_sheet(wb, buildSheet2(), 'खातेदार का नाम_A to Z');
+
+  var village = safeName(metadata.village || 'Village');
+  var fileName = 'Parcha Distribution_Register_Format_' + village + '.xlsx';
+
+  XLSX.writeFile(wb, fileName);
+  setStatus('Downloaded: ' + fileName);
+}
+
+
+function rowsPerPageFor(mode){
+  return mode === 'main' ? 30 : 42;
+}
+
+function rowsPerPageFor(mode){
+  // Landscape A4: rows kept fixed so name does not cut.
+  return mode === 'main' ? 18 : 28;
+}
+
+function rowsPerPageFor(mode){
+  // User sample style: approx 12 rows/page with larger row height so names do not cut.
+  return mode === 'main' ? 12 : 18;
+}
+
+function rowsPerPageFor(mode){
+  return mode === 'main' ? 26 : 38;
+}
+
+function buildPdfHtml(mode){
+  var village = metadata.village || 'Village';
+
+  function esc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g,function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+
+  function chunkRows(rows, size){
+    var chunks = [];
+    for(var i=0; i<rows.length; i += size){
+      chunks.push(rows.slice(i, i + size));
+    }
+    return chunks;
+  }
+
+  function topInfo(){
+    return '<div class="eval-info">' +
+      'ग्राम:- ' + esc(village) +
+      ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; पटवार सर्कल:- ' + esc(metadata.patwar || '') +
+      ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; आई.एल.आर. वृत्त. :- ' + esc(metadata.ilr || '') +
+      ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; तहसील :- ' + esc(metadata.tehsil || '') +
+      ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; जिला :- ' + esc(metadata.district || '') +
+      '</div><div class="eval-year">वर्ष:- ' + esc(metadata.year || '2026') + '</div>';
+  }
+
+  function mainRows(rows,startIndex){
+    return rows.map(function(row,i){
+      return '<tr>' +
+        '<td>' + (startIndex+i+1) + '</td>' +
+        '<td>' + esc(row.khata) + '</td>' +
+        '<td class="eval-name">' + esc(row.tenant) + '</td>' +
+        '<td></td><td></td><td></td><td></td><td></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function azRows(rows,startIndex){
+    return rows.map(function(row,i){
+      return '<tr>' +
+        '<td>' + (startIndex+i+1) + '</td>' +
+        '<td class="eval-name">' + esc(row.tenant) + '</td>' +
+        '<td>' + esc(row.khata) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  if(mode === 'main'){
+    var chunks = chunkRows(generatedRows, rowsPerPageFor('main'));
+    var out = '';
+
+    out += '<div class="eval-page eval-cover">' +
+      '<div>' +
+        '<div class="eval-cover-title">PARCHA DISTRIBUTION REGISTER</div>' +
+        '<div class="eval-cover-village">ग्राम :- &nbsp;&nbsp;&nbsp; ' + esc(village) + '</div>' +
+      '</div>' +
+    '</div>';
+
+    chunks.forEach(function(part,pageIndex){
+      var startIndex = pageIndex * rowsPerPageFor('main');
+      out += '<div class="eval-page">' +
+        topInfo() +
+        '<table class="eval-table">' +
+          '<thead><tr>' +
+            '<th style="width:6%">क्रमांक<br>संख्या</th>' +
+            '<th style="width:5%">पर्चा<br>संख्या</th>' +
+            '<th style="width:40%">खातेदार का नाम</th>' +
+            '<th style="width:13%">मोबाइल नंबर</th>' +
+            '<th style="width:14%">आधार नंबर</th>' +
+            '<th style="width:7%">दिनांक</th>' +
+            '<th style="width:9%">प्राप्ति हस्ताक्षर</th>' +
+            '<th style="width:6%">विशेष विवरण</th>' +
+          '</tr></thead>' +
+          '<tbody>' + mainRows(part,startIndex) + '</tbody>' +
+        '</table>' +
+      '</div>';
+    });
+    return out;
+  }
+
+  var azChunks = chunkRows(generatedRowsAZ, rowsPerPageFor('az'));
+  var azOut = '';
+  azChunks.forEach(function(part,pageIndex){
+    var startIndex = pageIndex * rowsPerPageFor('az');
+    azOut += '<div class="eval-page">' +
+      '<div style="text-align:center;font-weight:900;font-size:15px;margin-bottom:3px;">खातेदार का नाम A to Z</div>' +
+      '<div style="text-align:center;font-weight:800;font-size:11px;margin-bottom:3px;">ग्राम :- ' + esc(village) + '</div>' +
+      '<table class="eval-table">' +
+        '<thead><tr>' +
+          '<th style="width:9%">क्रमांक संख्या</th>' +
+          '<th style="width:81%">काश्तकार का नाम</th>' +
+          '<th style="width:10%">खाता संख्या</th>' +
+        '</tr></thead>' +
+        '<tbody>' + azRows(part,startIndex) + '</tbody>' +
+      '</table>' +
+    '</div>';
+  });
+  return azOut;
+}
+
+async function elementToPdf(element,fileName){
+  if(!window.jspdf || !window.jspdf.jsPDF) throw new Error('jsPDF library not loaded.');
+  if(typeof html2canvas === 'undefined') throw new Error('html2canvas library not loaded.');
+
+  var jsPDF = window.jspdf.jsPDF;
+  var pdf = new jsPDF('l','mm','a4');
+
+  var pages = Array.prototype.slice.call(element.querySelectorAll('.eval-page'));
+  if(!pages.length) pages = [element];
+
+  for(var i=0; i<pages.length; i++){
+    await new Promise(function(resolve){ setTimeout(resolve,80); });
+
+    var page = pages[i];
+    var canvas = await html2canvas(page,{
+      scale:2.2,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      windowWidth:page.scrollWidth,
+      windowHeight:page.scrollHeight,
+      scrollX:0,
+      scrollY:0
+    });
+
+    var imgData = canvas.toDataURL('image/jpeg',0.95);
+    var pageW = 297;
+    var pageH = 210;
+    var imgW = pageW;
+    var imgH = canvas.height * imgW / canvas.width;
+
+    if(i > 0) pdf.addPage('a4','landscape');
+    pdf.addImage(imgData,'JPEG',0,0,imgW,Math.min(imgH,pageH),undefined,'FAST');
+  }
+
+  pdf.save(fileName);
+}
+
+async function downloadSinglePDF(mode){
+  if(!generatedRows.length){
+    alert('Pehle ROR Excel upload karein.');
+    return;
+  }
+
+  var village = metadata.village || 'Village';
+  var fileName = mode === 'main'
+    ? 'Parcha_Distribution_Register_Landscape_' + safeName(village) + '.pdf'
+    : 'Khatedar_Name_A_to_Z_Landscape_' + safeName(village) + '.pdf';
+
+  var printArea = document.getElementById('evalPrintArea');
+  printArea.innerHTML = buildPdfHtml(mode);
+  printArea.style.left = '0';
+  printArea.style.top = '0';
+  printArea.style.opacity = '1';
+  printArea.style.zIndex = '-1';
+
+  try{
+    await elementToPdf(printArea,fileName);
+    setStatus('Downloaded PDF: ' + fileName);
+  }catch(e){
+    console.error(e);
+    alert('PDF download failed: ' + e.message);
+  }finally{
+    printArea.innerHTML = '';
+    printArea.style.left = '-99999px';
+  }
+}
+
+async function downloadPDF(){
+  await downloadSinglePDF('main');
+  setTimeout(function(){ downloadSinglePDF('az'); }, 1400);
+}
+
+function clearAll(){
+  workbookData = null;
+  generatedRows = [];
+  generatedRowsAZ = [];
+  metadata = {};
+  document.getElementById('excelInput').value = '';
+  document.querySelector('#previewTable tbody').innerHTML = '';
+  setText('kpiVillage', '-');
+  setText('kpiKhata', '0');
+  setText('kpiRows', '0');
+  setText('kpiAZ', '0');
+  setStatus('Waiting for Excel upload...');
+}
+</script>
+<div id="printArea"></div>
+<div id="evalPrintArea"></div>
+</body>
+</html>
